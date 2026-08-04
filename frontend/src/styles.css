@@ -5,13 +5,13 @@
 
 @theme inline {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 
-  --radius-sm: 0px;
-  --radius-md: 2px;
-  --radius-lg: 2px;
-  --radius-xl: 3px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -46,52 +46,52 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Editorial industrial — grafite / laranja / areia */
+/* Etiqueta de peça — papel claro, tinta escura na lateral, teal + latão */
 :root, .dark {
-  --radius: 2px;
+  --radius: 10px;
 
-  --background: oklch(0.24 0.002 60);         /* #1F1F1F */
-  --foreground: oklch(0.94 0.004 80);         /* #F0EEEA */
+  --background: #EAE6DB;             /* papel de oficina */
+  --foreground: #22201B;             /* tinta */
 
-  --card: oklch(0.28 0.002 60);               /* #262626 */
-  --card-foreground: oklch(0.94 0.004 80);
+  --card: #F6F3EA;                   /* papel da etiqueta, mais claro */
+  --card-foreground: #22201B;
 
-  --popover: oklch(0.28 0.002 60);
-  --popover-foreground: oklch(0.94 0.004 80);
+  --popover: #F6F3EA;
+  --popover-foreground: #22201B;
 
-  --primary: oklch(0.65 0.192 42);            /* laranja #F26522 */
-  --primary-foreground: oklch(0.99 0.003 80);
+  --primary: #1F6F6B;                /* teal ferramenta */
+  --primary-foreground: #F6F3EA;
 
-  --secondary: oklch(0.32 0.002 60);
-  --secondary-foreground: oklch(0.94 0.004 80);
+  --secondary: #DED7C6;
+  --secondary-foreground: #22201B;
 
-  --muted: oklch(0.30 0.002 60);
-  --muted-foreground: oklch(0.66 0.003 60);   /* #8A8A8A */
+  --muted: #E1DBCC;
+  --muted-foreground: #6B6355;
 
-  --accent: oklch(0.89 0.008 80);             /* areia #E4DED6 */
-  --accent-foreground: oklch(0.24 0.002 60);
+  --accent: #C97A2E;                 /* latão / carimbo */
+  --accent-foreground: #2A1B0C;
 
-  --destructive: oklch(0.60 0.22 25);
-  --destructive-foreground: oklch(0.99 0.003 80);
+  --destructive: #B33F32;
+  --destructive-foreground: #F6F3EA;
 
-  --success: oklch(0.72 0.16 150);
-  --success-foreground: oklch(0.24 0.002 60);
+  --success: #4B7B4F;
+  --success-foreground: #F6F3EA;
 
-  --warning: oklch(0.65 0.192 42);
-  --warning-foreground: oklch(0.99 0.003 80);
+  --warning: #C97A2E;
+  --warning-foreground: #2A1B0C;
 
-  --border: oklch(0.34 0.002 60);
-  --input: oklch(0.32 0.002 60);
-  --ring: oklch(0.65 0.192 42);
+  --border: #D3CBB6;
+  --input: #DED7C6;
+  --ring: #1F6F6B;
 
-  --sidebar: oklch(0.19 0.002 60);
-  --sidebar-foreground: oklch(0.88 0.004 80);
-  --sidebar-primary: oklch(0.65 0.192 42);
-  --sidebar-primary-foreground: oklch(0.99 0.003 80);
-  --sidebar-accent: oklch(0.26 0.002 60);
-  --sidebar-accent-foreground: oklch(0.97 0.004 80);
-  --sidebar-border: oklch(0.30 0.002 60);
-  --sidebar-ring: oklch(0.65 0.192 42);
+  --sidebar: #201D18;                /* parede/pegboard escura */
+  --sidebar-foreground: #EAE6DB;
+  --sidebar-primary: #C97A2E;
+  --sidebar-primary-foreground: #2A1B0C;
+  --sidebar-accent: #2C2820;
+  --sidebar-accent-foreground: #F6F3EA;
+  --sidebar-border: #38332A;
+  --sidebar-ring: #C97A2E;
 }
 
 @layer base {
@@ -103,46 +103,45 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.03em; }
+  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
   .font-mono, code, pre { font-family: var(--font-mono); }
   .tabular-nums { font-variant-numeric: tabular-nums; }
 }
 
-/* Filete: linha fina com segmento laranja sólido à esquerda */
-@utility accent-rule {
-  background-image: linear-gradient(
-    to right,
-    var(--primary) 0 72px,
-    var(--border) 72px 100%
-  );
+/* Etiqueta pendurada: pílula com um "furo" perfurado à esquerda,
+   como as fichas de identificação de peça penduradas na oficina. */
+@utility tag-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.3em 0.85em 0.3em 0.55em;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-muted-foreground);
 }
 
-/* Marcas de grade verticais finas ao fundo de uma seção */
-@utility grid-lines {
-  background-image:
-    linear-gradient(to right, var(--border) 1px, transparent 1px),
-    linear-gradient(to right, var(--border) 1px, transparent 1px);
-  background-position: 25% 0, 75% 0;
-  background-size: 1px 100%, 1px 100%;
+@utility tag-hole {
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 999px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+/* Costura pontilhada usada em divisórias de seção */
+@utility stitch-line {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--color-border) 0 6px,
+    transparent 6px 12px
+  );
+  background-size: 100% 1px;
+  background-position: 0 0;
   background-repeat: no-repeat;
-}
-
-/* Título fantasma em outline usado atrás dos cabeçalhos */
-@utility ghost-title {
-  color: transparent;
-  -webkit-text-stroke: 1px var(--border);
-  font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  user-select: none;
-  pointer-events: none;
-}
-
-/* Hazard tape legado — mantido como filete laranja */
-@utility hazard-tape {
-  background-image: linear-gradient(
-    to right,
-    var(--primary) 0 72px,
-    var(--border) 72px 100%
-  );
 }

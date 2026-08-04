@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Tag } from "@/components/Tag";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -25,8 +26,8 @@ const NAV = [
 function Mark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <path d="M16 2 30 30H20l-4-9-4 9H2z" fill="currentColor" />
-      <path d="M16 13l3.5 7h-7z" fill="var(--sidebar)" />
+      <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" strokeWidth="2.5" />
+      <path d="M11 20 16 10l5 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -34,13 +35,13 @@ function Mark({ className }: { className?: string }) {
 function Brand() {
   return (
     <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-6">
-      <Mark className="h-8 w-8 shrink-0 text-primary" />
+      <Mark className="h-7 w-7 shrink-0 text-sidebar-primary" />
       <div className="min-w-0">
-        <div className="font-display text-base font-bold lowercase tracking-tight text-sidebar-foreground">
-          molas & cia
+        <div className="font-display text-lg font-semibold text-sidebar-foreground">
+          Molas & Cia
         </div>
-        <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-sidebar-foreground/50">
-          gestão · v1.0
+        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/50">
+          gestão de custos
         </div>
       </div>
     </div>
@@ -50,7 +51,7 @@ function Brand() {
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex-1 space-y-px p-3">
-      {NAV.map(({ to, label, icon: Icon, end }, i) => (
+      {NAV.map(({ to, label, icon: Icon, end }) => (
         <NavLink
           key={to}
           to={to}
@@ -58,15 +59,12 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
           className={({ isActive }) =>
             cn(
-              "group flex items-center gap-3 px-3 py-3 text-sm font-medium transition-colors",
+              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
               "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-              isActive && "bg-sidebar-accent text-primary",
+              isActive && "bg-sidebar-accent text-sidebar-primary",
             )
           }
         >
-          <span className="w-5 shrink-0 font-mono text-[10px] tracking-widest opacity-50">
-            {String(i + 1).padStart(2, "0")}
-          </span>
           <Icon className="h-4 w-4 shrink-0" />
           <span className="truncate">{label}</span>
         </NavLink>
@@ -77,11 +75,11 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
 
 function Footer() {
   return (
-    <div className="border-t border-sidebar-border">
-      <div className="h-0.5 accent-rule" />
-      <div className="px-5 py-4 text-[10px] font-mono uppercase tracking-[0.28em] text-sidebar-foreground/40">
-        status: ok · backend on-line
-      </div>
+    <div className="border-t border-sidebar-border px-5 py-4">
+      <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/40">
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-sidebar-primary" />
+        sistema on-line
+      </span>
     </div>
   );
 }
@@ -122,15 +120,7 @@ export function AppShell() {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground">
-            <span>Molas & Cia</span>
-            <span className="text-primary">/</span>
-            <span className="text-foreground">{active?.label ?? "—"}</span>
-          </div>
-          <div className="ml-auto flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground">
-            <span className="hidden sm:inline-flex h-1.5 w-1.5 bg-primary" />
-            <span className="hidden sm:inline">operacional</span>
-          </div>
+          <Tag>{active?.label ?? "—"}</Tag>
         </header>
         <main className="flex-1">
           <Outlet />

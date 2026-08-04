@@ -39,30 +39,30 @@ export function Dashboard() {
         ) : error ? (
           <ErrorState error={error} onRetry={() => refetch()} />
         ) : data ? (
-          <div className="grid gap-px border border-border bg-border sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <Kpi label="Valor investido" value={brl(data.invested_value)} icon={Wallet} hint="Custo total em estoque" />
             <Kpi label="Valor potencial de venda" value={brl(data.potential_sale_value)} icon={TrendingUp} />
             <Kpi label="Lucro bruto estimado" value={brl(data.gross_profit_estimate)} icon={Coins} />
             <Kpi label="Lucro líquido estimado" value={brl(data.net_profit_estimate)} icon={BadgeDollarSign} tone="success" hint="Após Simples Nacional" />
             <Kpi label="Rentabilidade estimada" value={pct(data.estimated_profitability_percentage)} icon={Percent} tone="primary" />
-            <div className="relative overflow-hidden border border-border bg-card p-6">
+            <div className="rounded-lg border border-border bg-card p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground">
+                  <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                     Produtos para reajuste
                   </div>
-                  <div className="mt-4 font-display text-3xl font-bold leading-none tabular-nums sm:text-4xl">
+                  <div className="mt-3 font-display text-3xl font-semibold leading-none tabular-nums sm:text-4xl">
                     {num(data.products_for_adjustment)}
                   </div>
                   <p className="mt-3 text-xs text-muted-foreground">
                     Itens com preço de venda abaixo do sugerido.
                   </p>
                 </div>
-                <div className="grid h-9 w-9 shrink-0 place-items-center border border-primary/50 text-primary">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-primary/40 text-primary">
                   <AlertTriangle className="h-4 w-4" />
                 </div>
               </div>
-              <Button asChild size="sm" className="mt-5 rounded-none">
+              <Button asChild size="sm" className="mt-5">
                 <Link to="/produtos">Revisar produtos</Link>
               </Button>
             </div>
