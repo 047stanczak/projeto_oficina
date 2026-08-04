@@ -113,3 +113,9 @@ npm run dev
 ## Conceito do projeto
 
 O projeto atua como uma camada de automação operacional para o processo de entrada de produtos de nota fiscal, trazendo controle financeiro, rastreabilidade e apoio de decisão para a gestão da oficina.
+
+## Integrantes
+
+- José Lorico Stanczak Junior
+- Guilherme Turkot
+- Anthony Riam Rodrigues
