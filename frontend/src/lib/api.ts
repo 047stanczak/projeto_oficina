@@ -26,6 +26,9 @@ export type Produto = {
   sale_price: number;
   suggested_price: number | null;
   stock: number;
+  min_stock: number | null;
+  effective_min_stock: number;
+  is_low_stock: boolean;
 };
 
 export type Regra = {

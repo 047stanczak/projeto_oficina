@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS products (
     current_cost DECIMAL(10, 2),
     sale_price DECIMAL(10, 2),
     stock INT DEFAULT 0,
+    min_stock INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -60,3 +61,18 @@ CREATE TABLE IF NOT EXISTS market_queries (
     sources TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Allows the default minimum stock to be configured without changing products
+-- that already have their own minimum.
+CREATE TABLE IF NOT EXISTS stock_settings (
+    id INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    global_min_stock INT NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO stock_settings (id, global_min_stock)
+VALUES (1, 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- Keeps existing databases compatible when this file is run again.
+ALTER TABLE products ADD COLUMN IF NOT EXISTS min_stock INT;

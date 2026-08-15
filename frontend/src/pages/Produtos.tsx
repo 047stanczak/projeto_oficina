@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, Pencil } from "lucide-react";
+import { Search, Pencil, Settings2 } from "lucide-react";
 import { api, type Produto } from "@/lib/api";
 import { brl, num } from "@/lib/format";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -27,6 +27,14 @@ export function Produtos() {
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<Produto | null>(null);
   const [preco, setPreco] = useState("");
+  const [minimo, setMinimo] = useState("");
+  const [globalOpen, setGlobalOpen] = useState(false);
+  const [minimoGlobal, setMinimoGlobal] = useState("");
+
+  const estoqueGlobalQ = useQuery({
+    queryKey: ["estoque-global"],
+    queryFn: async () => (await api.get<{ global_min_stock: number }>("/api/stock-settings")).data,
+  });
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -49,9 +57,38 @@ export function Produtos() {
     onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar"),
   });
 
+  const estoqueMutation = useMutation({
+    mutationFn: async ({ id, min_stock }: { id: number; min_stock: number | null }) =>
+      (await api.post(`/api/products/${id}/min-stock`, { min_stock })).data,
+    onSuccess: () => {
+      toast.success("Estoque mínimo atualizado");
+      qc.invalidateQueries({ queryKey: ["produtos"] });
+      setEditing(null);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar"),
+  });
+
+  const globalMutation = useMutation({
+    mutationFn: async (global_min_stock: number) =>
+      (await api.post("/api/stock-settings", { global_min_stock })).data,
+    onSuccess: () => {
+      toast.success("Estoque mínimo global atualizado");
+      qc.invalidateQueries({ queryKey: ["produtos"] });
+      qc.invalidateQueries({ queryKey: ["estoque-global"] });
+      setGlobalOpen(false);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar"),
+  });
+
   function openEdit(p: Produto) {
     setEditing(p);
     setPreco(String(p.sale_price ?? ""));
+    setMinimo(p.min_stock == null ? "" : String(p.min_stock));
+  }
+
+  function openGlobal() {
+    setMinimoGlobal(String(estoqueGlobalQ.data?.global_min_stock ?? 0));
+    setGlobalOpen(true);
   }
 
   return (
@@ -61,14 +98,19 @@ export function Produtos() {
         title="Produtos em estoque"
         description="Consulte custo, preço praticado e preço sugerido pela regra ativa."
         actions={
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar código ou nome..."
-              className="w-64 pl-9"
-            />
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={openGlobal}>
+              <Settings2 className="mr-1 h-4 w-4" /> Estoque global
+            </Button>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Buscar código ou nome..."
+                className="w-64 pl-9"
+              />
+            </div>
           </div>
         }
       />
@@ -91,6 +133,7 @@ export function Produtos() {
                     <TableHead className="text-right">Preço venda</TableHead>
                     <TableHead className="text-right">Preço sugerido</TableHead>
                     <TableHead className="text-right">Estoque</TableHead>
+                    <TableHead className="text-right">Mínimo</TableHead>
                     <TableHead className="w-[100px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -116,7 +159,16 @@ export function Produtos() {
                             brl(p.suggested_price)
                           )}
                         </TableCell>
-                        <TableCell className="text-right font-mono tabular-nums">{num(p.stock)}</TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">
+                          <div className="flex items-center justify-end gap-2">
+                            {num(p.stock)}
+                            {p.is_low_stock && <Badge variant="destructive" className="text-[10px]">baixo</Badge>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">
+                          {num(p.effective_min_stock)}
+                          {p.min_stock == null && <span className="ml-1 text-[10px] text-muted-foreground">global</span>}
+                        </TableCell>
                         <TableCell className="text-right">
                           <Button size="sm" variant="ghost" onClick={() => openEdit(p)}>
                             <Pencil className="mr-1 h-3.5 w-3.5" /> Preço
@@ -166,6 +218,11 @@ export function Produtos() {
                 className="font-mono"
               />
             </div>
+            <div>
+              <Label htmlFor="minimo">Estoque mínimo</Label>
+              <Input id="minimo" type="number" min="0" step="1" value={minimo} onChange={(e) => setMinimo(e.target.value)} placeholder={`Global: ${estoqueGlobalQ.data?.global_min_stock ?? 0}`} className="font-mono" />
+              <p className="mt-1 text-xs text-muted-foreground">Deixe vazio para usar o padrão global.</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button>
@@ -177,6 +234,32 @@ export function Produtos() {
               disabled={mutation.isPending || !preco || Number.isNaN(Number(preco))}
             >
               {mutation.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => editing && estoqueMutation.mutate({ id: editing.id, min_stock: minimo === "" ? null : Number(minimo) })}
+              disabled={estoqueMutation.isPending || (minimo !== "" && (!Number.isInteger(Number(minimo)) || Number(minimo) < 0))}
+            >
+              {estoqueMutation.isPending ? "Salvando..." : "Salvar mínimo"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={globalOpen} onOpenChange={setGlobalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Estoque mínimo global</DialogTitle>
+            <DialogDescription>Usado pelos produtos que não possuem um limite próprio.</DialogDescription>
+          </DialogHeader>
+          <div>
+            <Label htmlFor="minimo-global">Quantidade mínima</Label>
+            <Input id="minimo-global" type="number" min="0" step="1" value={minimoGlobal} onChange={(e) => setMinimoGlobal(e.target.value)} className="font-mono" />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setGlobalOpen(false)}>Cancelar</Button>
+            <Button onClick={() => globalMutation.mutate(Number(minimoGlobal))} disabled={globalMutation.isPending || !Number.isInteger(Number(minimoGlobal)) || Number(minimoGlobal) < 0}>
+              {globalMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -69,6 +69,8 @@ docker compose -f infra/docker-compose.yml up --build
 
 - O banco é criado automaticamente pela inicialização do container PostgreSQL.
 - O script de bootstrap está em `infra/postgres/init.sql`.
+- Para bancos que já existem, aplique uma vez a migração
+  `infra/postgres/migrations/001_add_min_stock.sql`; ela preserva todos os dados.
 - A pasta `docs/` contém exemplos de XML para testes e validação do fluxo de importação.
 
 ## Fluxo principal
