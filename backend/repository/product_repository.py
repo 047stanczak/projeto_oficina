@@ -2,7 +2,7 @@ from models.product import Product
 
 
 def list_products(cursor):
-    cursor.execute("SELECT id, code, name, current_cost, sale_price, stock FROM products")
+    cursor.execute("SELECT id, code, name, current_cost, sale_price, stock, min_stock FROM products")
     rows = cursor.fetchall()
     return [
         Product(
@@ -11,7 +11,8 @@ def list_products(cursor):
             name=r[2],
             current_cost=float(r[3]) if r[3] else 0,
             sale_price=float(r[4]) if r[4] else 0,
-            stock=r[5]
+            stock=r[5],
+            min_stock=r[6]
         )
         for r in rows
     ]
@@ -19,7 +20,7 @@ def list_products(cursor):
 
 def find_by_id(cursor, product_id):
     cursor.execute(
-        "SELECT id, code, name, current_cost, sale_price, stock FROM products WHERE id = %s",
+        "SELECT id, code, name, current_cost, sale_price, stock, min_stock FROM products WHERE id = %s",
         (product_id,)
     )
     r = cursor.fetchone()
@@ -31,7 +32,8 @@ def find_by_id(cursor, product_id):
         name=r[2],
         current_cost=float(r[3]) if r[3] else 0,
         sale_price=float(r[4]) if r[4] else 0,
-        stock=r[5]
+        stock=r[5],
+        min_stock=r[6]
     )
 
 
@@ -45,6 +47,28 @@ def update_sale_price(cursor, product_id, new_price):
         "UPDATE products SET sale_price = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
         (new_price, product_id)
     )
+
+
+def update_min_stock(cursor, product_id, min_stock):
+    cursor.execute(
+        "UPDATE products SET min_stock = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+        (min_stock, product_id)
+    )
+
+
+def find_global_min_stock(cursor):
+    cursor.execute("SELECT global_min_stock FROM stock_settings WHERE id = 1")
+    row = cursor.fetchone()
+    return row[0] if row else 0
+
+
+def save_global_min_stock(cursor, min_stock):
+    cursor.execute("""
+        INSERT INTO stock_settings (id, global_min_stock)
+        VALUES (1, %s)
+        ON CONFLICT (id) DO UPDATE
+        SET global_min_stock = %s, updated_at = CURRENT_TIMESTAMP
+    """, (min_stock, min_stock))
 
 
 def find_by_code(cursor, code):

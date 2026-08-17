@@ -9,3 +9,4 @@ class Product:
     current_cost: float
     sale_price: float
     stock: int
+    min_stock: int | None

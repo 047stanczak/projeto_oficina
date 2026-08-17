@@ -4,6 +4,7 @@ from services import pricing_service
 
 def list_products_with_suggested_price(cursor):
     products = product_repository.list_products(cursor)
+    global_min_stock = product_repository.find_global_min_stock(cursor)
 
     result = []
     for p in products:
@@ -20,7 +21,10 @@ def list_products_with_suggested_price(cursor):
             "current_cost": p.current_cost,
             "sale_price": p.sale_price,
             "suggested_price": suggested_price,
-            "stock": p.stock
+            "stock": p.stock,
+            "min_stock": p.min_stock,
+            "effective_min_stock": p.min_stock if p.min_stock is not None else global_min_stock,
+            "is_low_stock": p.stock < (p.min_stock if p.min_stock is not None else global_min_stock),
         })
 
     return result
@@ -38,3 +42,20 @@ def update_sale_price(cursor, product_id, new_price):
     history_repository.register_price_history(cursor, product_id, old_price, new_price)
 
     return True
+
+
+def update_min_stock(cursor, product_id, min_stock):
+    product = product_repository.find_by_id(cursor, product_id)
+    if not product:
+        return False
+
+    product_repository.update_min_stock(cursor, product_id, min_stock)
+    return True
+
+
+def get_global_min_stock(cursor):
+    return product_repository.find_global_min_stock(cursor)
+
+
+def update_global_min_stock(cursor, min_stock):
+    product_repository.save_global_min_stock(cursor, min_stock)

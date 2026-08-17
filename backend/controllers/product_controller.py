@@ -41,6 +41,55 @@ def update_sale_price(product_id):
     return jsonify({"success": True}), 200
 
 
+@product_bp.route("/api/products/<int:product_id>/min-stock", methods=["POST"])
+def update_min_stock(product_id):
+    data = request.get_json()
+    min_stock = data.get("min_stock")
+
+    if min_stock is not None and (not isinstance(min_stock, int) or min_stock < 0):
+        return jsonify({"error": "Minimum stock must be a non-negative integer"}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+    updated = product_service.update_min_stock(cursor, product_id, min_stock)
+
+    if not updated:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Product not found"}), 404
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"success": True}), 200
+
+
+@product_bp.route("/api/stock-settings", methods=["GET"])
+def get_stock_settings():
+    conn = get_db()
+    cursor = conn.cursor()
+    min_stock = product_service.get_global_min_stock(cursor)
+    cursor.close()
+    conn.close()
+    return jsonify({"global_min_stock": min_stock}), 200
+
+
+@product_bp.route("/api/stock-settings", methods=["POST"])
+def update_stock_settings():
+    data = request.get_json()
+    min_stock = data.get("global_min_stock")
+    if not isinstance(min_stock, int) or min_stock < 0:
+        return jsonify({"error": "Minimum stock must be a non-negative integer"}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+    product_service.update_global_min_stock(cursor, min_stock)
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"success": True}), 200
+
+
 @product_bp.route("/api/products/<int:product_id>/market-price", methods=["POST"])
 def query_market_price(product_id):
     conn = get_db()
