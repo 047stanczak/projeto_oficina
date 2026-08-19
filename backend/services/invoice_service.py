@@ -28,3 +28,44 @@ def update_costs(cursor, invoice_id, updates):
             product_repository.update_cost_and_stock(cursor, product_id, new_cost, quantity)
         else:
             product_repository.create_product(cursor, code, upd.get("name", "Product"), new_cost, quantity)
+
+def calcular_rateio_custos_adicionais(itens: list, totais: dict) -> list:
+    custo_adicional_total = totais.get('vFrete', 0) + totais.get('vSeg', 0) + totais.get('vOutro', 0) - totais.get('vDesc', 0)
+    v_prod_total = totais.get('vProdTotal', 0)
+    itens_com_custo_real = []
+
+    for item in itens:
+        peso_do_item = (item['valorProduto'] / v_prod_total) if v_prod_total > 0 else 0
+        rateio_do_item = custo_adicional_total * peso_do_item
+        custo_efetivo_real_total = item['valorProduto'] + rateio_do_item
+        
+        quantidade = item.get('quantidade', 1)
+        custo_unitario_real = custo_efetivo_real_total / quantidade
+
+        item_atualizado = item.copy()
+        item_atualizado['rateioAplicado'] = round(rateio_do_item, 4)
+        item_atualizado['custoEfetivoRealTotal'] = round(custo_efetivo_real_total, 4)
+        item_atualizado['custoUnitarioReal'] = round(custo_unitario_real, 4)
+
+        itens_com_custo_real.append(item_atualizado)
+
+    return itens_com_custo_real
+
+if __name__ == "__main__":
+    totais_extraidos = {
+        'vFrete': 50.00,
+        'vSeg': 10.00,
+        'vOutro': 5.00,
+        'vDesc': 15.00,
+        'vProdTotal': 1000.00
+    }
+
+    itens_extraidos = [
+        {'id': 1, 'nome': "Peça A", 'valorProduto': 200.00, 'quantidade': 2},
+        {'id': 2, 'nome': "Peça B", 'valorProduto': 800.00, 'quantidade': 4}
+    ]
+
+    resultado = calcular_rateio_custos_adicionais(itens_extraidos, totais_extraidos)
+    
+    for r in resultado:
+        print(f"Item: {r['nome']} | Custo Adicional Rateado: R${r['rateioAplicado']} | Custo Unitário Real: R${r['custoUnitarioReal']}")
