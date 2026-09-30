@@ -76,3 +76,14 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Keeps existing databases compatible when this file is run again.
 ALTER TABLE products ADD COLUMN IF NOT EXISTS min_stock INT;
+
+
+-- Application users. The first admin is created with backend/create_admin.py.
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE CHECK (username = lower(username)),
+    password_hash TEXT NOT NULL,
+    role VARCHAR(10) NOT NULL CHECK (role IN ('admin', 'member')),
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

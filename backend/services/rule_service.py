@@ -1,4 +1,4 @@
-from repository import rule_repository
+from repository import rule_repository, product_repository
 
 
 def list_rules(cursor):
@@ -16,7 +16,11 @@ def list_rules(cursor):
 
 
 def save_rule(cursor, product_id, margin, tax):
+    """Returns False if the product doesn't exist, True if saved."""
     if product_id:
+        if not product_repository.find_by_id(cursor, product_id):
+            return False
         rule_repository.save_product_rule(cursor, product_id, margin, tax)
     else:
         rule_repository.save_global_rule(cursor, margin, tax)
+    return True

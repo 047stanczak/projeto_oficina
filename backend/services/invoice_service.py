@@ -12,6 +12,10 @@ def register_invoice(cursor, file_name):
     return invoice_repository.create_invoice(cursor, "1", "1", datetime.now().date(), "Supplier", file_name)
 
 
+def invoice_exists(cursor, invoice_id):
+    return invoice_repository.exists(cursor, invoice_id)
+
+
 def update_costs(cursor, invoice_id, updates):
     for upd in updates:
         code = upd.get("code")

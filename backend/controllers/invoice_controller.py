@@ -1,7 +1,11 @@
 import os
+import uuid
 
 from flask import Blueprint, request, jsonify
+from lxml import etree
+from werkzeug.utils import secure_filename
 
+import validators
 from repository.db import get_db
 from services import invoice_service
 
@@ -18,10 +22,13 @@ def upload_invoice():
 
     file = request.files["file"]
 
-    if not file.filename.endswith(".xml"):
+    filename = secure_filename(file.filename)
+
+    if not filename.lower().endswith(".xml"):
         return jsonify({"error": "File must be XML"}), 400
 
-    path = os.path.join(UPLOAD_DIR, file.filename)
+    # Stored under a random name; the client-supplied name is only kept as a label in the DB.
+    path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4().hex}.xml")
     file.save(path)
 
     try:
@@ -30,7 +37,7 @@ def upload_invoice():
         conn = get_db()
         cursor = conn.cursor()
 
-        invoice_id = invoice_service.register_invoice(cursor, file.filename)
+        invoice_id = invoice_service.register_invoice(cursor, filename)
 
         conn.commit()
         cursor.close()
@@ -42,18 +49,26 @@ def upload_invoice():
             "products": products
         }), 200
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except (etree.LxmlError, ValueError):
+        return jsonify({"error": "Invalid invoice file"}), 400
+
+    finally:
+        os.remove(path)
 
 
 @invoice_bp.route("/api/update-costs", methods=["POST"])
 def update_costs():
-    data = request.get_json()
-    invoice_id = data.get("invoice_id")
-    updates = data.get("updates", [])
+    data = validators.json_body()
+    invoice_id = validators.integer(data.get("invoice_id"), "invoice_id", minimum=1)
+    updates = validators.update_items(data.get("updates"))
 
     conn = get_db()
     cursor = conn.cursor()
+
+    if not invoice_service.invoice_exists(cursor, invoice_id):
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Invoice not found"}), 404
 
     invoice_service.update_costs(cursor, invoice_id, updates)
 

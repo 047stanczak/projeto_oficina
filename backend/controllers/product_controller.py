@@ -1,5 +1,8 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, current_app
 
+import validators
+from auth import admin_required
+from extensions import limiter
 from repository.db import get_db
 from services import product_service, market_query_service
 
@@ -21,8 +24,8 @@ def list_products():
 
 @product_bp.route("/api/products/<int:product_id>/price", methods=["POST"])
 def update_sale_price(product_id):
-    data = request.get_json()
-    new_price = data.get("sale_price")
+    data = validators.json_body()
+    new_price = validators.number(data.get("sale_price"), "sale_price")
 
     conn = get_db()
     cursor = conn.cursor()
@@ -43,11 +46,8 @@ def update_sale_price(product_id):
 
 @product_bp.route("/api/products/<int:product_id>/min-stock", methods=["POST"])
 def update_min_stock(product_id):
-    data = request.get_json()
-    min_stock = data.get("min_stock")
-
-    if min_stock is not None and (not isinstance(min_stock, int) or min_stock < 0):
-        return jsonify({"error": "Minimum stock must be a non-negative integer"}), 400
+    data = validators.json_body()
+    min_stock = validators.integer(data.get("min_stock"), "min_stock", nullable=True)
 
     conn = get_db()
     cursor = conn.cursor()
@@ -75,11 +75,10 @@ def get_stock_settings():
 
 
 @product_bp.route("/api/stock-settings", methods=["POST"])
+@admin_required
 def update_stock_settings():
-    data = request.get_json()
-    min_stock = data.get("global_min_stock")
-    if not isinstance(min_stock, int) or min_stock < 0:
-        return jsonify({"error": "Minimum stock must be a non-negative integer"}), 400
+    data = validators.json_body()
+    min_stock = validators.integer(data.get("global_min_stock"), "global_min_stock")
 
     conn = get_db()
     cursor = conn.cursor()
@@ -91,17 +90,20 @@ def update_stock_settings():
 
 
 @product_bp.route("/api/products/<int:product_id>/market-price", methods=["POST"])
+@limiter.limit("5 per minute;60 per hour")  # per user
+@limiter.limit("200 per day", key_func=lambda: "gemini-global", override_defaults=False)  # cost cap for the whole app
 def query_market_price(product_id):
     conn = get_db()
     cursor = conn.cursor()
 
     try:
         result = market_query_service.query_product_price(cursor, product_id)
-    except Exception as e:
+    except Exception:
+        current_app.logger.exception("Market price query failed")
         conn.rollback()
         cursor.close()
         conn.close()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Market price query failed"}), 502
 
     if not result:
         cursor.close()

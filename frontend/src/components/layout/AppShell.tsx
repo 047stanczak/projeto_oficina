@@ -8,11 +8,16 @@ import {
   Calculator,
   BarChart3,
   Menu,
+  Users,
+  KeyRound,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/Tag";
+import { useAuth } from "@/lib/auth";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -21,6 +26,7 @@ const NAV = [
   { to: "/regras", label: "Regras de Preço", icon: SlidersHorizontal },
   { to: "/simulador", label: "Simulador", icon: Calculator },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
 ];
 
 function Mark({ className }: { className?: string }) {
@@ -49,9 +55,10 @@ function Brand() {
 }
 
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {
+  const { isAdmin } = useAuth();
   return (
     <nav className="flex-1 space-y-px p-3">
-      {NAV.map(({ to, label, icon: Icon, end }) => (
+      {NAV.filter((n) => !n.adminOnly || isAdmin).map(({ to, label, icon: Icon, end }) => (
         <NavLink
           key={to}
           to={to}
@@ -74,8 +81,29 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function Footer() {
+  const { user, logout } = useAuth();
+  const [pwdOpen, setPwdOpen] = useState(false);
   return (
-    <div className="border-t border-sidebar-border px-5 py-4">
+    <div className="space-y-3 border-t border-sidebar-border px-5 py-4">
+      {user && (
+        <div className="space-y-2">
+          <div className="min-w-0">
+            <div className="truncate font-mono text-sm text-sidebar-foreground">{user.username}</div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/50">
+              {user.role === "admin" ? "administrador" : "membro"}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" className="h-8 flex-1 justify-start px-2 text-sidebar-foreground/70" onClick={() => setPwdOpen(true)}>
+              <KeyRound className="mr-1 h-3.5 w-3.5" /> Senha
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 flex-1 justify-start px-2 text-sidebar-foreground/70" onClick={() => logout()}>
+              <LogOut className="mr-1 h-3.5 w-3.5" /> Sair
+            </Button>
+          </div>
+          <ChangePasswordDialog open={pwdOpen} onOpenChange={setPwdOpen} />
+        </div>
+      )}
       <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/40">
         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-sidebar-primary" />
         sistema on-line

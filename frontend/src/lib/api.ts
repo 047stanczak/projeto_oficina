@@ -1,9 +1,45 @@
-import axios from "axios";
+import axios, { type AxiosError } from "axios";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "",
-  headers: { Accept: "application/json" },
+  // The custom header is what the backend requires on writes (CSRF protection).
+  headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
+  withCredentials: true,
 });
+
+let onUnauthorized: (() => void) | null = null;
+export function setUnauthorizedHandler(fn: (() => void) | null) {
+  onUnauthorized = fn;
+}
+
+// Turns HTTP failures into readable messages: screens already show `error.message`.
+api.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError<{ error?: string }>) => {
+    const status = error.response?.status;
+    const url = error.config?.url ?? "";
+    const isAuthCall = url.endsWith("/api/login") || url.endsWith("/api/me");
+
+    if (status === 401 && !isAuthCall) onUnauthorized?.();
+
+    if (status === 401 && url.endsWith("/api/login")) error.message = "Usuário ou senha inválidos.";
+    else if (status === 401) error.message = "Sessão expirada. Entre novamente.";
+    else if (status === 403) error.message = "Você não tem permissão para esta ação.";
+    else if (status === 429) error.message = "Muitas tentativas. Aguarde um momento e tente novamente.";
+    else if (error.response?.data?.error) error.message = error.response.data.error;
+    return Promise.reject(error);
+  },
+);
+
+export type Perfil = "admin" | "member";
+
+export type Usuario = {
+  id: number;
+  username: string;
+  role: Perfil;
+  active: boolean;
+  created_at: string | null;
+};
 
 export type ProdutoExtraido = {
   code: string;
@@ -73,4 +109,18 @@ export type AumentoCusto = {
   old_cost: number;
   new_cost: number;
   increase: number;
+};
+
+export type MarketQuerySource = {
+  title: string | null;
+  url: string | null;
+};
+
+export type MarketQueryResult = {
+  id: number;
+  product_id: number;
+  name: string;
+  response: string;
+  sources: MarketQuerySource[];
+  date: string;
 };

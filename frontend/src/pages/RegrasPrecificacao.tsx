@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { api, type Produto, type Regra } from "@/lib/api";
 import { pct } from "@/lib/format";
+import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ import { LoadingState, ErrorState, EmptyState } from "@/components/States";
 
 export function RegrasPrecificacao() {
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
   const regrasQ = useQuery({
     queryKey: ["regras"],
     queryFn: async () => (await api.get<{ rules: Regra[] }>("/api/pricing-rules")).data.rules,
@@ -65,9 +67,11 @@ export function RegrasPrecificacao() {
         title="Regras de Precificação"
         description="Regra global (padrão) e overrides por produto. Fórmula: custo × (1 + margem%) ÷ (1 − Simples%)."
         actions={
-          <Button onClick={() => setOpen(true)}>
-            <Plus className="mr-1 h-4 w-4" /> Nova regra
-          </Button>
+          isAdmin ? (
+            <Button onClick={() => setOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" /> Nova regra
+            </Button>
+          ) : undefined
         }
       />
       <div className="p-6">
