@@ -3,12 +3,26 @@ import json
 from repository import product_repository, market_query_repository
 import gemini_client
 
+CACHE_MINUTES = 10  # avoid paying for the same question repeatedly
+
 
 def query_product_price(cursor, product_id):
     """Returns None if the product doesn't exist."""
     product = product_repository.find_by_id(cursor, product_id)
     if not product:
         return None
+
+    recent = market_query_repository.find_recent(cursor, product.id, CACHE_MINUTES)
+    if recent:
+        return {
+            "id": recent[0],
+            "product_id": product.id,
+            "name": product.name,
+            "response": recent[1],
+            "sources": json.loads(recent[2]) if recent[2] else [],
+            "date": recent[3].isoformat(),
+            "cached": True,
+        }
 
     result = gemini_client.query_market_price(product.name)
 

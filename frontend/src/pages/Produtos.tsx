@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, Pencil, Settings2 } from "lucide-react";
-import { api, type Produto } from "@/lib/api";
-import { brl, num } from "@/lib/format";
+import { Search, Pencil, Settings2, Sparkles, Info, ExternalLink } from "lucide-react";
+import { api, type Produto, type MarketQueryResult } from "@/lib/api";
+import { brl, num, dateBR } from "@/lib/format";
+import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,9 +17,11 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { LoadingState, ErrorState, EmptyState } from "@/components/States";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function Produtos() {
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["produtos"],
     queryFn: async () => (await api.get<{ products: Produto[] }>("/api/products")).data.products,
@@ -34,6 +37,24 @@ export function Produtos() {
   const estoqueGlobalQ = useQuery({
     queryKey: ["estoque-global"],
     queryFn: async () => (await api.get<{ global_min_stock: number }>("/api/stock-settings")).data,
+  });
+
+  const historicoIAQ = useQuery({
+    queryKey: ["market-price-history", editing?.id],
+    queryFn: async () =>
+      (await api.get<{ history: MarketQueryResult[] }>(`/api/products/${editing!.id}/market-price`)).data.history,
+    enabled: !!editing,
+  });
+
+  const iaMutation = useMutation({
+    mutationFn: async (id: number) =>
+      (await api.post<MarketQueryResult>(`/api/products/${id}/market-price`)).data,
+    onSuccess: () => {
+      toast.success("Preço médio consultado");
+      qc.invalidateQueries({ queryKey: ["market-price-history", editing?.id] });
+    },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.error ?? e?.message ?? "Erro ao consultar IA"),
   });
 
   const filtered = useMemo(() => {
@@ -99,9 +120,11 @@ export function Produtos() {
         description="Consulte custo, preço praticado e preço sugerido pela regra ativa."
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={openGlobal}>
-              <Settings2 className="mr-1 h-4 w-4" /> Estoque global
-            </Button>
+            {isAdmin && (
+              <Button variant="outline" onClick={openGlobal}>
+                <Settings2 className="mr-1 h-4 w-4" /> Estoque global
+              </Button>
+            )}
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -222,6 +245,71 @@ export function Produtos() {
               <Label htmlFor="minimo">Estoque mínimo</Label>
               <Input id="minimo" type="number" min="0" step="1" value={minimo} onChange={(e) => setMinimo(e.target.value)} placeholder={`Global: ${estoqueGlobalQ.data?.global_min_stock ?? 0}`} className="font-mono" />
               <p className="mt-1 text-xs text-muted-foreground">Deixe vazio para usar o padrão global.</p>
+            </div>
+
+            <div className="rounded-md border border-border p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium">Preço médio de mercado (IA)</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Usa a IA do Google (Gemini) para pesquisar na web uma faixa de
+                      preço praticada no mercado para este produto.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => editing && iaMutation.mutate(editing.id)}
+                  disabled={iaMutation.isPending}
+                >
+                  <Sparkles className="mr-1 h-3.5 w-3.5" />
+                  {iaMutation.isPending ? "Pesquisando..." : "Pesquisar"}
+                </Button>
+              </div>
+
+              <div className="mt-3 max-h-48 space-y-3 overflow-y-auto">
+                {iaMutation.isPending && <LoadingState label="Consultando IA..." />}
+                {historicoIAQ.isLoading && !iaMutation.isPending && (
+                  <LoadingState label="Carregando histórico..." />
+                )}
+                {historicoIAQ.error && !iaMutation.isPending && (
+                  <ErrorState error={historicoIAQ.error} onRetry={() => historicoIAQ.refetch()} />
+                )}
+                {historicoIAQ.data?.length === 0 && !iaMutation.isPending && (
+                  <p className="text-xs text-muted-foreground">
+                    Nenhuma consulta realizada ainda para este produto.
+                  </p>
+                )}
+                {historicoIAQ.data?.map((h) => (
+                  <div key={h.id} className="rounded-md bg-muted/50 p-2.5 text-xs">
+                    <div className="mb-1 text-[10px] text-muted-foreground">{dateBR(h.date)}</div>
+                    <p className="whitespace-pre-wrap text-foreground">{h.response}</p>
+                    {h.sources.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {h.sources.map((s, i) =>
+                          s.url ? (
+                            <a
+                              key={i}
+                              href={s.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-primary hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              {s.title || "fonte"}
+                            </a>
+                          ) : null,
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>
